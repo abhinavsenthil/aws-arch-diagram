@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .aws-component {
+    @apply border-2 border-aws-orange bg-white rounded-lg p-3 shadow-md cursor-move hover:shadow-lg transition-shadow;
+  }
+  
+  .aws-component:hover {
+    @apply border-aws-blue;
+  }
+  
+  .aws-component.selected {
+    @apply border-aws-blue bg-blue-50;
+  }
+  
+  .connection-line {
+    @apply stroke-aws-orange stroke-2 fill-none;
+  }
+  
+  .connection-line:hover {
+    @apply stroke-aws-blue;
+  }
+}
