@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core'
-import { AWSComponentPalette } from './components/AWSComponentPalette'
-import { ArchitectureCanvas } from './components/ArchitectureCanvas'
+import { SimpleComponentPalette } from './components/SimpleComponentPalette'
+import { SimpleReactFlowCanvas } from './components/SimpleReactFlowCanvas'
 import { TerraformCodePanel } from './components/TerraformCodePanel'
 import { AWSComponent, ComponentType } from './types'
 import { 
@@ -78,44 +77,7 @@ const getComponentIcon = (type: string) => {
 function App() {
   const [components, setComponents] = useState<AWSComponent[]>([])
   const [connections, setConnections] = useState<Array<{from: string, to: string}>>([])
-  const [activeComponent, setActiveComponent] = useState<AWSComponent | null>(null)
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null)
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event
-    const componentType = active.id as ComponentType
-    const newComponent: AWSComponent = {
-      id: `${componentType}-${Date.now()}`,
-      type: componentType,
-      position: { x: 100, y: 100 },
-      properties: {}
-    }
-    setActiveComponent(newComponent)
-  }
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over, delta } = event
-    
-    if (over && over.id === 'canvas') {
-      // Get the canvas element to calculate position
-      const canvasElement = document.getElementById('canvas')
-      if (canvasElement) {
-        const rect = canvasElement.getBoundingClientRect()
-        const newComponent: AWSComponent = {
-          id: `${active.id}-${Date.now()}`,
-          type: active.id as ComponentType,
-          position: { 
-            x: Math.max(0, delta.x - 50), 
-            y: Math.max(0, delta.y - 50)
-          },
-          properties: {}
-        }
-        setComponents(prev => [...prev, newComponent])
-      }
-    }
-    
-    setActiveComponent(null)
-  }
 
   const handleComponentSelect = (componentId: string) => {
     setSelectedComponent(componentId)
@@ -135,7 +97,19 @@ function App() {
     setSelectedComponent(null)
   }
 
-  const handleConnectionCreate = (from: string, to: string, fromPort: 'left' | 'right' = 'right', toPort: 'left' | 'right' = 'left') => {
+  const handleComponentAdd = (type: ComponentType) => {
+    const newComponent: AWSComponent = {
+      id: `${type.toLowerCase()}_${Date.now()}`,
+      type,
+      position: { x: 200 + Math.random() * 200, y: 200 + Math.random() * 200 },
+      properties: {
+        name: `${type} ${components.filter(c => c.type === type).length + 1}`
+      }
+    }
+    setComponents(prev => [...prev, newComponent])
+  }
+
+  const handleConnectionCreate = (from: string, to: string) => {
     const fromComponent = components.find(c => c.id === from)
     const toComponent = components.find(c => c.id === to)
     
@@ -149,31 +123,24 @@ function App() {
     
     if (existingConnection) return
 
-    // Determine connection type based on component types and ports
+    // Determine connection type based on component types
     let connectionType: 'trigger' | 'permission' | 'data_flow' = 'data_flow'
     let direction: 'unidirectional' | 'bidirectional' = 'unidirectional'
+    let fromPort: 'left' | 'right' = 'right'
+    let toPort: 'left' | 'right' = 'left'
 
-    // Right port (calls) -> Left port (invoked by): Trigger
-    if (fromPort === 'right' && toPort === 'left') {
-      if (fromComponent.type === 'S3' && toComponent.type === 'Lambda') {
-        connectionType = 'trigger'
-      } else if (fromComponent.type === 'API Gateway' && toComponent.type === 'Lambda') {
-        connectionType = 'trigger'
-      } else {
-        connectionType = 'data_flow'
-      }
-    }
-    // Right port (calls) -> Right port (calls): Permission
-    else if (fromPort === 'right' && toPort === 'right') {
+    // Determine connection type based on component types
+    if (fromComponent.type === 'S3' && toComponent.type === 'Lambda') {
+      connectionType = 'trigger'
+    } else if (fromComponent.type === 'API Gateway' && toComponent.type === 'Lambda') {
+      connectionType = 'trigger'
+    } else if (fromComponent.type === 'Lambda' && toComponent.type === 'S3') {
       connectionType = 'permission'
-    }
-    // Left port (invoked by) -> Left port (invoked by): Data flow
-    else if (fromPort === 'left' && toPort === 'left') {
-      connectionType = 'data_flow'
-      direction = 'bidirectional'
-    }
-    // Default: data flow
-    else {
+    } else if (fromComponent.type === 'Lambda' && toComponent.type === 'DynamoDB') {
+      connectionType = 'permission'
+    } else if (fromComponent.type === 'Lambda' && toComponent.type === 'RDS') {
+      connectionType = 'permission'
+    } else {
       connectionType = 'data_flow'
     }
 
@@ -193,20 +160,19 @@ function App() {
 
   return (
     <div className="h-screen bg-gray-100 flex overflow-hidden">
-      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        {/* Left Sidebar - Component Palette */}
-        <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-          <div className="p-4 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-800">AWS Architecture Builder</h1>
-            <p className="text-sm text-gray-600">Drag components to build your architecture</p>
-          </div>
-          <AWSComponentPalette />
+      {/* Left Sidebar - Component Palette */}
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+        <div className="p-4 border-b border-gray-200">
+          <h1 className="text-xl font-bold text-gray-800">AWS Architecture Builder</h1>
+            <p className="text-sm text-gray-600">Click components to add them to your architecture</p>
         </div>
+          <SimpleComponentPalette onComponentAdd={handleComponentAdd} />
+      </div>
 
-        {/* Main Canvas Area */}
-        <div className="flex-1 flex overflow-visible">
-          <div className="flex-1 overflow-visible">
-            <ArchitectureCanvas
+      {/* Main Canvas Area */}
+      <div className="flex-1 flex overflow-visible">
+        <div className="flex-1 overflow-visible">
+            <SimpleReactFlowCanvas
               components={components}
               connections={connections}
               onComponentSelect={handleComponentSelect}
@@ -216,30 +182,16 @@ function App() {
               onConnectionDelete={handleConnectionDelete}
               selectedComponent={selectedComponent}
             />
-          </div>
-          
-          {/* Right Sidebar - Terraform Code */}
-          <div className="w-96 bg-white border-l border-gray-200">
-            <TerraformCodePanel 
-              components={components} 
-              connections={connections}
-            />
-          </div>
         </div>
-
-        <DragOverlay>
-          {activeComponent && (
-            <div className="aws-component shadow-2xl scale-110 opacity-90">
-              <div className="flex items-center space-x-2 p-2">
-                <div className="text-aws-orange">
-                  {getComponentIcon(activeComponent.type)}
-                </div>
-                <span className="font-medium">{activeComponent.type}</span>
-              </div>
-            </div>
-          )}
-        </DragOverlay>
-      </DndContext>
+        
+        {/* Right Sidebar - Terraform Code */}
+        <div className="w-96 bg-white border-l border-gray-200">
+          <TerraformCodePanel 
+            components={components} 
+            connections={connections}
+          />
+        </div>
+      </div>
     </div>
   )
 }
