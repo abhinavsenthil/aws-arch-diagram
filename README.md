@@ -1,6 +1,7 @@
 # AWS Architecture Builder
 
 A drag-and-drop visual tool for building AWS architectures that automatically generates Terraform code.
+Vibe coded full disclosure
 
 ## Features
 
