@@ -21,7 +21,6 @@ export type ComponentType =
   | 'ElastiCache'
   | 'ElasticSearch'
   | 'SES'
-  | 'SNS'
   | 'CloudFormation'
   | 'CodePipeline'
   | 'CodeBuild'

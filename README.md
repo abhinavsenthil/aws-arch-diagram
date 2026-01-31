@@ -1,15 +1,20 @@
 # AWS Architecture Builder
 
-A drag-and-drop visual tool for building AWS architectures that automatically generates Terraform code.
-Vibe coded full disclosure
+A drag-and-drop visual tool for building AWS architectures that automatically generates production-ready Terraform code.
 
 ## Features
 
-- 🎨 **Visual Architecture Design**: Drag and drop AWS components to build your infrastructure
-- 🔧 **Auto Terraform Generation**: Automatically generates Terraform HCL code from your architecture
-- 🔗 **Component Connections**: Connect AWS services to define relationships
-- 📦 **Comprehensive AWS Services**: Support for EC2, S3, RDS, Lambda, VPC, and many more
-- 💾 **Export & Deploy**: Download Terraform code and deploy to AWS
+- **Visual Architecture Design**: Click to add AWS components and connect them on an interactive canvas
+- **Smart Terraform Generation**: Generates proper Terraform HCL with:
+  - Variable definitions for sensitive values (passwords, etc.)
+  - Proper resource references and interpolation
+  - IAM roles and policies based on component connections
+  - Resource outputs for commonly needed values
+- **Intelligent IAM Policies**: Automatically generates correct IAM policies based on:
+  - Resource-based policies (e.g., Lambda permissions for S3 triggers)
+  - Execution role policies (e.g., Lambda accessing DynamoDB)
+  - Consolidated policies for multiple targets
+- **Comprehensive AWS Services**: 25+ AWS services across compute, storage, networking, and more
 
 ## Getting Started
 
@@ -20,108 +25,96 @@ Vibe coded full disclosure
 
 ### Installation
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+# Clone the repository
+git clone <repo-url>
+cd aws-architecture-builder
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+# Install dependencies
+npm install
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+# Start the development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Usage
 
 ### Building an Architecture
 
-1. **Drag Components**: Drag AWS components from the left palette to the canvas
-2. **Connect Services**: Click on components to start connections, then click target components
-3. **Configure Properties**: Select components to configure their properties
+1. **Add Components**: Click AWS components from the left palette to add them to the canvas
+2. **Connect Services**: Drag from one component's handle to another to create connections
+3. **Configure Properties**: Click components to open settings and customize names
 4. **Generate Code**: Click "Generate" in the right panel to create Terraform code
 5. **Export**: Copy or download the generated Terraform code
 
-### Supported AWS Services
+### Connection Types
 
-#### Compute
-- EC2 Instances
-- Lambda Functions
-- Auto Scaling Groups
+- **Trigger**: Service A triggers Service B (e.g., S3 → Lambda)
+- **Permission**: Service A accesses Service B (e.g., Lambda → DynamoDB)
+- **Data Flow**: General data connection between services
 
-#### Storage
-- S3 Buckets
-- RDS Databases
-- DynamoDB Tables
-- ElastiCache
+## Supported AWS Services
 
-#### Networking
-- VPC
-- Subnets
-- Internet Gateway
-- Load Balancers
-- Route53
-- CloudFront
-
-#### Security
-- Security Groups
-- IAM Roles
-- KMS Keys
-
-#### Application Services
-- API Gateway
-- SQS Queues
-- SNS Topics
-- SES Email
-
-#### Monitoring & DevOps
-- CloudWatch
-- CodePipeline
-- CodeBuild
-- CodeDeploy
+| Category | Services |
+|----------|----------|
+| **Compute** | EC2, Lambda, Auto Scaling Group |
+| **Storage** | S3, DynamoDB, RDS, ElastiCache |
+| **Networking** | VPC, Subnet, Internet Gateway, Load Balancer, Security Group |
+| **API & CDN** | API Gateway, Route53, CloudFront |
+| **Messaging** | SQS, SNS, SES |
+| **Monitoring** | CloudWatch |
+| **Security** | IAM, KMS |
+| **DevOps** | CloudFormation, CodePipeline, CodeBuild, CodeDeploy |
 
 ## Project Structure
 
 ```
 src/
 ├── components/
-│   ├── AWSComponentPalette.tsx    # Left sidebar with draggable components
-│   ├── ArchitectureCanvas.tsx     # Main canvas for architecture design
-│   ├── AWSComponentNode.tsx       # Individual component nodes
-│   ├── ConnectionLine.tsx         # SVG connection lines
-│   └── TerraformCodePanel.tsx     # Right sidebar with generated code
-├── types.ts                       # TypeScript type definitions
-├── App.tsx                        # Main application component
-└── main.tsx                       # Application entry point
+│   ├── SimpleComponentPalette.tsx  # Left sidebar with AWS components
+│   ├── SimpleReactFlowCanvas.tsx   # Main canvas using React Flow
+│   ├── ReactFlowAWSNode.tsx        # Individual component nodes
+│   ├── ReactFlowCustomEdge.tsx     # Custom connection edges
+│   └── TerraformCodePanel.tsx      # Right sidebar with generated code
+├── iamPolicyGenerator.ts           # IAM policy generation logic
+├── iamPolicyMapping.ts             # Service capabilities and policy requirements
+├── types.ts                        # TypeScript type definitions
+├── App.tsx                         # Main application component
+└── main.tsx                        # Application entry point
 ```
 
 ## Technologies Used
 
 - **React 18** - UI framework
 - **TypeScript** - Type safety
-- **@dnd-kit** - Drag and drop functionality
+- **React Flow** - Interactive canvas and connections
 - **Tailwind CSS** - Styling
 - **Lucide React** - Icons
 - **Vite** - Build tool
+
+## Generated Terraform Features
+
+The generated Terraform code includes:
+
+- **Variables**: Configurable values for AMI IDs, instance types, database credentials, etc.
+- **Proper Resource References**: Uses Terraform references instead of hardcoded values
+- **IAM Resources**: 
+  - Execution roles with assume role policies
+  - Resource-based permissions (e.g., Lambda permissions)
+  - Consolidated policies for multiple resource access
+- **Outputs**: Useful outputs like Lambda ARNs, S3 bucket names, API URLs
+- **Best Practices**: Skip final snapshot flags, proper tagging, etc.
 
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests if applicable
+4. Run `npm run lint` to check for issues
 5. Submit a pull request
 
 ## License
 
-MIT License - see LICENSE file for details
-
-## Roadmap
-
-- [ ] Real-time collaboration
-- [ ] AWS deployment integration
-- [ ] Cost estimation
-- [ ] Architecture validation
-- [ ] Template library
-- [ ] Multi-cloud support
+MIT License

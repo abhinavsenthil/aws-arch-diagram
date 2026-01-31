@@ -64,14 +64,14 @@ function generateExecutionRoles(context: IAMPolicyContext): GeneratedIAMPolicy[]
   
   // Generate roles for each service
   servicesNeedingRoles.forEach(serviceType => {
-    const roleName = `${serviceType.toLowerCase()}_execution_role`
+    const roleName = sanitizeName(`${serviceType.toLowerCase()}_execution_role`)
     
     if (!context.existingRoles.has(roleName)) {
       roles.push({
         type: 'aws_iam_role',
         name: roleName,
         properties: {
-          name: `${serviceType.toLowerCase()}-execution-role`,
+          name: `${serviceType.toLowerCase().replace(/\s+/g, '-')}-execution-role`,
           assume_role_policy: generateAssumeRolePolicy(serviceType),
           tags: {
             Name: `${serviceType} Execution Role`,
@@ -203,6 +203,11 @@ function generateExecutionRolePolicies(context: IAMPolicyContext): GeneratedIAMP
   return policies
 }
 
+// Helper to sanitize resource names for Terraform
+function sanitizeName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+}
+
 // Generate a specific resource-based policy
 function generateResourceBasedPolicy(
   _requirement: IAMPolicyRequirement,
@@ -210,8 +215,8 @@ function generateResourceBasedPolicy(
   targetComponent: AWSComponent,
   _connection: Connection
 ): GeneratedIAMPolicy | null {
-  const sourceName = sourceComponent.properties.name || sourceComponent.type.toLowerCase().replace(/\s+/g, '_')
-  const targetName = targetComponent.properties.name || targetComponent.type.toLowerCase().replace(/\s+/g, '_')
+  const sourceName = sanitizeName(sourceComponent.properties.name || sourceComponent.type.toLowerCase().replace(/\s+/g, '_'))
+  const targetName = sanitizeName(targetComponent.properties.name || targetComponent.type.toLowerCase().replace(/\s+/g, '_'))
   
   // Handle different types of resource-based policies
   if (targetComponent.type === 'Lambda' && sourceComponent.type === 'S3') {
@@ -219,13 +224,13 @@ function generateResourceBasedPolicy(
       type: 'aws_lambda_permission',
       name: `${targetName}_${sourceName}_permission`,
       properties: {
-        statement_id: `AllowExecutionFrom${sourceComponent.type}`,
+        statement_id: `AllowExecutionFromS3`,
         action: 'lambda:InvokeFunction',
-        function_name: `\${aws_lambda_function.${targetName}.function_name}`,
-        principal: `${sourceComponent.type.toLowerCase()}.amazonaws.com`,
-        source_arn: `\${aws_${sourceComponent.type.toLowerCase()}.${sourceName}.arn}`
+        function_name: `aws_lambda_function.${targetName}.function_name`,
+        principal: 's3.amazonaws.com',
+        source_arn: `aws_s3_bucket.${sourceName}.arn`
       },
-      description: `Allow ${sourceComponent.type} to invoke ${targetComponent.type}`
+      description: `Allow S3 to invoke Lambda`
     }
   }
   
@@ -234,13 +239,13 @@ function generateResourceBasedPolicy(
       type: 'aws_lambda_permission',
       name: `${targetName}_${sourceName}_permission`,
       properties: {
-        statement_id: `AllowExecutionFrom${sourceComponent.type}`,
+        statement_id: `AllowExecutionFromAPIGateway`,
         action: 'lambda:InvokeFunction',
-        function_name: `\${aws_lambda_function.${targetName}.function_name}`,
+        function_name: `aws_lambda_function.${targetName}.function_name`,
         principal: 'apigateway.amazonaws.com',
         source_arn: `\${aws_api_gateway_rest_api.${sourceName}.execution_arn}/*/*`
       },
-      description: `Allow ${sourceComponent.type} to invoke ${targetComponent.type}`
+      description: `Allow API Gateway to invoke Lambda`
     }
   }
   
@@ -249,13 +254,13 @@ function generateResourceBasedPolicy(
       type: 'aws_lambda_permission',
       name: `${targetName}_${sourceName}_permission`,
       properties: {
-        statement_id: `AllowExecutionFrom${sourceComponent.type}`,
+        statement_id: `AllowExecutionFromSNS`,
         action: 'lambda:InvokeFunction',
-        function_name: `\${aws_lambda_function.${targetName}.function_name}`,
+        function_name: `aws_lambda_function.${targetName}.function_name`,
         principal: 'sns.amazonaws.com',
-        source_arn: `\${aws_sns_topic.${sourceName}.arn}`
+        source_arn: `aws_sns_topic.${sourceName}.arn`
       },
-      description: `Allow ${sourceComponent.type} to invoke ${targetComponent.type}`
+      description: `Allow SNS to invoke Lambda`
     }
   }
   
@@ -264,13 +269,13 @@ function generateResourceBasedPolicy(
       type: 'aws_lambda_permission',
       name: `${targetName}_${sourceName}_permission`,
       properties: {
-        statement_id: `AllowExecutionFrom${sourceComponent.type}`,
+        statement_id: `AllowExecutionFromSQS`,
         action: 'lambda:InvokeFunction',
-        function_name: `\${aws_lambda_function.${targetName}.function_name}`,
+        function_name: `aws_lambda_function.${targetName}.function_name`,
         principal: 'sqs.amazonaws.com',
-        source_arn: `\${aws_sqs_queue.${sourceName}.arn}`
+        source_arn: `aws_sqs_queue.${sourceName}.arn`
       },
-      description: `Allow ${sourceComponent.type} to invoke ${targetComponent.type}`
+      description: `Allow SQS to invoke Lambda`
     }
   }
   
@@ -285,8 +290,8 @@ function generateConsolidatedExecutionRolePolicy(
   targetComponents: AWSComponent[],
   policyKey: string
 ): GeneratedIAMPolicy | null {
-  const sourceName = sourceComponent.properties.name || sourceComponent.type.toLowerCase().replace(/\s+/g, '_')
-  const roleName = `${sourceComponent.type.toLowerCase()}_execution_role`
+  const sourceName = sanitizeName(sourceComponent.properties.name || sourceComponent.type.toLowerCase().replace(/\s+/g, '_'))
+  const roleName = sanitizeName(`${sourceComponent.type.toLowerCase()}_execution_role`)
   
   // Consolidate all actions and resources
   const allActions = [...new Set(requirements.flatMap(req => req.actions))]
@@ -294,7 +299,7 @@ function generateConsolidatedExecutionRolePolicy(
   
   // Generate resource ARNs for all target components
   const resourceArns = targetComponents.map(targetComponent => {
-    const targetName = targetComponent.properties.name || targetComponent.type.toLowerCase().replace(/\s+/g, '_')
+    const targetName = sanitizeName(targetComponent.properties.name || targetComponent.type.toLowerCase().replace(/\s+/g, '_'))
     return allResources.map(resource => 
       resource.replace('*', targetName)
     )
@@ -309,12 +314,14 @@ function generateConsolidatedExecutionRolePolicy(
     }]
   }
   
+  const sanitizedPolicyKey = sanitizeName(policyKey)
+  
   return {
     type: 'aws_iam_role_policy',
-    name: `${sourceName}_${policyKey}_access`,
+    name: `${sourceName}_${sanitizedPolicyKey}_access`,
     properties: {
-      name: `${sourceName}-${policyKey}-access`,
-      role: `\${aws_iam_role.${roleName}.id}`,
+      name: `${sourceName}-${sanitizedPolicyKey}-access`,
+      role: `aws_iam_role.${roleName}.id`,
       policy: JSON.stringify(consolidatedPolicy, null, 2)
     },
     description: `Allow ${sourceComponent.type} to access ${targetComponents.map(tc => tc.type).join(', ')}`
@@ -367,7 +374,7 @@ export function generateBasicExecutionRoleAttachments(context: IAMPolicyContext)
       type: 'aws_iam_role_policy_attachment',
       name: 'lambda_basic_execution',
       properties: {
-        role: '${aws_iam_role.lambda_execution_role.name}',
+        role: 'aws_iam_role.lambda_execution_role.name',
         policy_arn: 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
       },
       description: 'Basic execution role for Lambda'

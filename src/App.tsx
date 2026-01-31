@@ -1,78 +1,8 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { SimpleComponentPalette } from './components/SimpleComponentPalette'
 import { SimpleReactFlowCanvas } from './components/SimpleReactFlowCanvas'
 import { TerraformCodePanel } from './components/TerraformCodePanel'
 import { AWSComponent, ComponentType } from './types'
-import { 
-  Server, 
-  Database, 
-  Zap, 
-  Globe, 
-  Cloud, 
-  Shield, 
-  Users, 
-  Activity,
-  MessageSquare,
-  Bell,
-  Eye,
-  Key,
-  Search,
-  Mail,
-  GitBranch,
-  Wrench,
-  Ship
-} from 'lucide-react'
-
-const getComponentIcon = (type: string) => {
-  const iconProps = { size: 20 }
-  
-  switch (type) {
-    case 'EC2':
-    case 'Auto Scaling Group':
-      return <Server {...iconProps} />
-    case 'S3':
-    case 'DynamoDB':
-    case 'RDS':
-    case 'ElastiCache':
-      return <Database {...iconProps} />
-    case 'Lambda':
-      return <Zap {...iconProps} />
-    case 'VPC':
-    case 'Subnet':
-      return <Cloud {...iconProps} />
-    case 'Internet Gateway':
-    case 'Route53':
-    case 'CloudFront':
-    case 'API Gateway':
-      return <Globe {...iconProps} />
-    case 'Security Group':
-      return <Shield {...iconProps} />
-    case 'IAM':
-      return <Users {...iconProps} />
-    case 'KMS':
-      return <Key {...iconProps} />
-    case 'Load Balancer':
-      return <Activity {...iconProps} />
-    case 'SQS':
-      return <MessageSquare {...iconProps} />
-    case 'SNS':
-      return <Bell {...iconProps} />
-    case 'SES':
-      return <Mail {...iconProps} />
-    case 'CloudWatch':
-      return <Eye {...iconProps} />
-    case 'ElasticSearch':
-      return <Search {...iconProps} />
-    case 'CodePipeline':
-      return <GitBranch {...iconProps} />
-    case 'CodeBuild':
-      return <Wrench {...iconProps} />
-    case 'CodeDeploy':
-      return <Ship {...iconProps} />
-    default:
-      return <Cloud {...iconProps} />
-  }
-}
 
 function App() {
   const [components, setComponents] = useState<AWSComponent[]>([])
@@ -98,13 +28,77 @@ function App() {
   }
 
   const handleComponentAdd = (type: ComponentType) => {
-    const newComponent: AWSComponent = {
-      id: `${type.toLowerCase()}_${Date.now()}`,
-      type,
-      position: { x: 200 + Math.random() * 200, y: 200 + Math.random() * 200 },
-      properties: {
-        name: `${type} ${components.filter(c => c.type === type).length + 1}`
+    // Get default properties based on component type
+    const getDefaultProperties = (componentType: ComponentType) => {
+      const count = components.filter(c => c.type === componentType).length + 1
+      const baseName = `${componentType} ${count}`
+      
+      switch (componentType) {
+        case 'VPC':
+          return {
+            name: `my-vpc-${count}`,
+            cidr: '10.0.0.0/16',
+            width: 400,
+            height: 300
+          }
+        case 'Subnet':
+          return {
+            name: `subnet-${count}`,
+            cidr: `10.0.${count}.0/24`,
+            availabilityZone: 'us-west-2a',
+            isPublic: true,
+            width: 250,
+            height: 180
+          }
+        case 'Security Group':
+          return {
+            name: `sg-${count}`,
+            width: 200,
+            height: 150
+          }
+        case 'Lambda':
+          return {
+            name: `my-function-${count}`,
+            runtime: 'python3.9',
+            handler: 'index.handler'
+          }
+        case 'S3':
+          return {
+            name: `my-bucket-${count}`
+          }
+        case 'RDS':
+          return {
+            name: `my-database-${count}`,
+            engine: 'mysql'
+          }
+        case 'DynamoDB':
+          return {
+            name: `my-table-${count}`
+          }
+        case 'API Gateway':
+          return {
+            name: `my-api-${count}`
+          }
+        default:
+          return {
+            name: baseName
+          }
       }
+    }
+
+    // Calculate position - place group nodes more to the left/top
+    const isGroupNode = ['VPC', 'Subnet', 'Security Group'].includes(type)
+    const baseX = isGroupNode ? 100 : 300
+    const baseY = isGroupNode ? 100 : 200
+    
+    const newComponent: AWSComponent = {
+      id: `${type.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
+      type,
+      position: { 
+        x: baseX + Math.random() * 150, 
+        y: baseY + Math.random() * 150 
+      },
+      properties: getDefaultProperties(type)
     }
     setComponents(prev => [...prev, newComponent])
   }

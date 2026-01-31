@@ -1,4 +1,3 @@
-import React from 'react'
 import { EdgeProps, getBezierPath, EdgeLabelRenderer, BaseEdge } from 'reactflow'
 import { X, Zap, Shield, ArrowRight } from 'lucide-react'
 

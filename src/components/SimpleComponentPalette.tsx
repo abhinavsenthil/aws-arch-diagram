@@ -1,4 +1,3 @@
-import React from 'react'
 import { ComponentType } from '../types'
 import { 
   Server, 
@@ -7,17 +6,14 @@ import {
   Globe, 
   Cloud, 
   Shield, 
-  Users, 
   Activity,
   MessageSquare,
   Bell,
-  Eye,
   Key,
   Search,
   Mail,
-  GitBranch,
   Wrench,
-  Ship
+  Network
 } from 'lucide-react'
 
 interface SimpleComponentPaletteProps {
@@ -55,23 +51,21 @@ const getComponentIcon = (type: ComponentType) => {
     case 'CloudWatch':
       return <Activity {...iconProps} />
     case 'IAM':
-      return <Key {...iconProps} />
     case 'KMS':
-      return <Eye {...iconProps} />
+      return <Key {...iconProps} />
     case 'ElasticSearch':
       return <Search {...iconProps} />
     case 'SES':
       return <Mail {...iconProps} />
     case 'CloudFormation':
-      return <GitBranch {...iconProps} />
     case 'CodePipeline':
     case 'CodeBuild':
     case 'CodeDeploy':
       return <Wrench {...iconProps} />
     case 'Load Balancer':
-      return <Users {...iconProps} />
+      return <Network {...iconProps} />
     default:
-      return <Ship {...iconProps} />
+      return <Cloud {...iconProps} />
   }
 }
 

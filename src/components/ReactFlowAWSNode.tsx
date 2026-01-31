@@ -1,27 +1,7 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Handle, Position, NodeProps } from 'reactflow'
 import { AWSComponent } from '../types'
-import { 
-  Server, 
-  Database, 
-  Zap, 
-  Globe, 
-  Cloud, 
-  Shield, 
-  Users, 
-  Activity,
-  MessageSquare,
-  Bell,
-  Eye,
-  Key,
-  Search,
-  Mail,
-  GitBranch,
-  Wrench,
-  Ship,
-  X,
-  Settings
-} from 'lucide-react'
+import { X, Settings } from 'lucide-react'
 
 interface ReactFlowAWSNodeProps extends NodeProps {
   data: {
